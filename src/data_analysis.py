@@ -9,7 +9,7 @@ from typing import Dict, List
 
 import pandas as pd
 
-from .dataset_registry import DatasetInfo
+from .dataset_registry import DatasetInfo, TaskType
 
 REPORT_DIR = Path(__file__).resolve().parent.parent / "reports"
 REPORT_DIR.mkdir(exist_ok=True)
@@ -34,6 +34,8 @@ class ColumnSummary:
 class DatasetSummary:
     dataset: str
     description: str
+    task: TaskType
+    target: str
     n_rows: int
     n_columns: int
     categorical_columns: List[ColumnSummary]
@@ -43,6 +45,8 @@ class DatasetSummary:
         return {
             "dataset": self.dataset,
             "description": self.description,
+            "task": self.task.value,
+            "target": self.target,
             "n_rows": self.n_rows,
             "n_columns": self.n_columns,
             "categorical_columns": [col.to_dict() for col in self.categorical_columns],
@@ -54,7 +58,7 @@ def _summary_for_series(series: pd.Series) -> ColumnSummary:
     is_numeric = pd.api.types.is_numeric_dtype(series)
     n_missing = int(series.isna().sum())
     example = None if series.dropna().empty else str(series.dropna().iloc[0])
-    stats = None
+    stats: Dict[str, float] | None
     if is_numeric:
         stats = {
             "mean": float(series.mean()),
@@ -96,6 +100,8 @@ def build_summary(df: pd.DataFrame, dataset_info: DatasetInfo) -> DatasetSummary
     return DatasetSummary(
         dataset=dataset_info.name,
         description=dataset_info.description,
+        task=dataset_info.task,
+        target=dataset_info.target,
         n_rows=len(df),
         n_columns=df.shape[1],
         categorical_columns=categorical,
@@ -112,6 +118,6 @@ def save_summary(summary: DatasetSummary, filename: str | None = None) -> Path:
 
 
 def summarize_dataset(dataset_info: DatasetInfo) -> Path:
-    df = pd.read_csv(dataset_info.path)
+    df = dataset_info.load_dataframe()
     summary = build_summary(df, dataset_info)
     return save_summary(summary, filename=f"{dataset_info.path.stem}_summary.json")
