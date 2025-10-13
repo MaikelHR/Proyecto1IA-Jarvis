@@ -1,19 +1,17 @@
-"""Dataset registry for the Jarvis AI project.
-
-Each dataset entry encapsulates metadata required by the analysis and
-modeling pipelines. The datasets are synthetic representations inspired by
-those listed in the project instructions. They are generated with the helper
-script located at :mod:`scripts.generate_synthetic_datasets`.
-"""
+"""Dataset registry for the Jarvis AI project."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Callable, Dict, Iterable, List
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+import pandas as pd
+
+from . import data_loading
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
 
 
 class TaskType(str, Enum):
@@ -22,7 +20,9 @@ class TaskType(str, Enum):
     REGRESSION = "regression"
     CLASSIFICATION = "classification"
     TIME_SERIES = "time_series"
-    RECOMMENDATION = "recommendation"
+
+
+Loader = Callable[[Path], pd.DataFrame]
 
 
 @dataclass(frozen=True)
@@ -32,158 +32,96 @@ class DatasetInfo:
     name: str
     filename: str
     task: TaskType
-    target: str | None
+    target: str
     description: str
-    features: List[str]
+    features: List[str] | None = None
     time_column: str | None = None
     group_keys: List[str] | None = None
+    loader: Loader | None = None
 
     @property
     def path(self) -> Path:
         return DATA_DIR / self.filename
 
+    def load_dataframe(self) -> pd.DataFrame:
+        if self.loader is not None:
+            return self.loader(self.path)
+        return pd.read_csv(self.path)
+
 
 _DATASETS: Dict[str, DatasetInfo] = {
     "bitcoin_price": DatasetInfo(
-        name="Predicción del precio de Bitcoin",
-        filename="bitcoin_prices.csv",
+        name="Precio histórico de Bitcoin",
+        filename="bitcoin_price_training.csv",
         task=TaskType.TIME_SERIES,
         target="close",
-        description="Serie temporal sintética que simula precios diarios de Bitcoin.",
-        features=["open", "high", "low", "close", "volume"],
+        description="Cotizaciones diarias de Bitcoin con valores OHLC y capitalización.",
         time_column="date",
+        loader=data_loading.load_bitcoin_prices,
     ),
-    "car_price": DatasetInfo(
-        name="Predicción del precio de un automóvil",
+    "avocado_prices": DatasetInfo(
+        name="Precios de aguacate por región",
+        filename="avocado.csv",
+        task=TaskType.REGRESSION,
+        target="average_price",
+        description="Ventas de aguacate en Estados Unidos segmentadas por región y tipo.",
+        loader=data_loading.load_avocado,
+    ),
+    "body_fat": DatasetInfo(
+        name="Porcentaje de grasa corporal",
+        filename="bodyfat.csv",
+        task=TaskType.REGRESSION,
+        target="body_fat",
+        description="Mediciones antropométricas para estimar el porcentaje de grasa.",
+        loader=data_loading.load_bodyfat,
+    ),
+    "car_prices": DatasetInfo(
+        name="Valor de automóviles usados",
         filename="car_prices.csv",
         task=TaskType.REGRESSION,
         target="selling_price",
-        description="Datos estructurados sobre vehículos usados con atributos técnicos y de mercado.",
-        features=[
-            "year",
-            "present_price",
-            "kms_driven",
-            "fuel_type",
-            "seller_type",
-            "transmission",
-            "owner",
-        ],
-    ),
-    "movie_recs": DatasetInfo(
-        name="Recomendación de películas",
-        filename="movie_ratings.csv",
-        task=TaskType.RECOMMENDATION,
-        target="rating",
-        description="Calificaciones usuario-película para alimentar un sistema de recomendación.",
-        features=["user_id", "movie_id", "rating"],
-    ),
-    "sp500_price": DatasetInfo(
-        name="Predicción de precios S&P 500",
-        filename="sp500_prices.csv",
-        task=TaskType.TIME_SERIES,
-        target="close",
-        description="Cotizaciones sintéticas para múltiples símbolos del índice S&P 500.",
-        features=["open", "high", "low", "close", "volume"],
-        time_column="date",
-        group_keys=["symbol"],
-    ),
-    "house_price": DatasetInfo(
-        name="Predicción de precios de vivienda",
-        filename="house_prices.csv",
-        task=TaskType.REGRESSION,
-        target="sale_price",
-        description="Variables estructurales de viviendas y su precio de venta.",
-        features=[
-            "lot_area",
-            "overall_qual",
-            "year_built",
-            "gr_liv_area",
-            "garage_cars",
-            "neighborhood",
-            "house_style",
-        ],
-    ),
-    "wine_quality": DatasetInfo(
-        name="Clasificación de calidad del vino",
-        filename="wine_quality.csv",
-        task=TaskType.CLASSIFICATION,
-        target="quality",
-        description="Métricas fisicoquímicas de vinos con etiquetas de calidad.",
-        features=[
-            "fixed_acidity",
-            "volatile_acidity",
-            "citric_acid",
-            "residual_sugar",
-            "chlorides",
-            "free_sulfur_dioxide",
-            "total_sulfur_dioxide",
-            "density",
-            "pH",
-            "sulphates",
-            "alcohol",
-        ],
-    ),
-    "inventory_demand": DatasetInfo(
-        name="Predicción de inventario",
-        filename="inventory_demand.csv",
-        task=TaskType.TIME_SERIES,
-        target="units_sold",
-        description="Histórico de ventas por tienda y artículo para planificación de inventario.",
-        features=["store", "item", "units_sold"],
-        time_column="date",
-        group_keys=["store", "item"],
-    ),
-    "bike_fare": DatasetInfo(
-        name="Tarifa de viajes en bicicleta",
-        filename="bike_fares.csv",
-        task=TaskType.REGRESSION,
-        target="fare",
-        description="Características de viajes compartidos de bicicleta con tarifa final.",
-        features=["distance_km", "duration_min", "surge_multiplier", "city"],
+        description="Histórico de vehículos usados con características de mercado.",
+        loader=data_loading.load_car_prices,
     ),
     "telco_churn": DatasetInfo(
         name="Churn de clientes Telco",
         filename="telco_churn.csv",
         task=TaskType.CLASSIFICATION,
-        target="Churn",
+        target="churn",
         description="Información contractual y de uso de clientes de telecomunicaciones.",
-        features=[
-            "gender",
-            "SeniorCitizen",
-            "Partner",
-            "Dependents",
-            "tenure",
-            "PhoneService",
-            "MultipleLines",
-            "InternetService",
-            "OnlineSecurity",
-            "OnlineBackup",
-            "DeviceProtection",
-            "TechSupport",
-            "StreamingTV",
-            "StreamingMovies",
-            "Contract",
-            "PaperlessBilling",
-            "PaymentMethod",
-            "MonthlyCharges",
-            "TotalCharges",
-        ],
+        loader=data_loading.load_telco_churn,
     ),
-    "airline_delay": DatasetInfo(
-        name="Retrasos en vuelos",
-        filename="airline_delays.csv",
+    "wine_quality": DatasetInfo(
+        name="Calidad de vinos",
+        filename="winequality.csv",
         task=TaskType.CLASSIFICATION,
-        target="cancelled",
-        description="Registros de vuelos con información de demoras y cancelaciones.",
-        features=[
-            "airline",
-            "origin",
-            "destination",
-            "distance",
-            "weather",
-            "departure_delay",
-            "arrival_delay",
-        ],
+        target="quality",
+        description="Mediciones fisicoquímicas de vinos blancos y tintos.",
+        loader=data_loading.load_wine_quality,
+    ),
+    "stroke_risk": DatasetInfo(
+        name="Predicción de derrame cerebral",
+        filename="healthcare_stroke_data.csv",
+        task=TaskType.CLASSIFICATION,
+        target="stroke",
+        description="Variables demográficas y clínicas asociadas al derrame cerebral.",
+        loader=data_loading.load_stroke_data,
+    ),
+    "hepatitis_c": DatasetInfo(
+        name="Diagnóstico de hepatitis C",
+        filename="hepatitis_c_data.csv",
+        task=TaskType.CLASSIFICATION,
+        target="category",
+        description="Perfil bioquímico con etiquetado diagnóstico para hepatitis C.",
+        loader=data_loading.load_hepatitis_c,
+    ),
+    "cirrhosis_status": DatasetInfo(
+        name="Estatus clínico de cirrosis",
+        filename="cirrhosis.csv",
+        task=TaskType.CLASSIFICATION,
+        target="status",
+        description="Datos longitudinales de pacientes con cirrosis hepática.",
+        loader=data_loading.load_cirrhosis,
     ),
 }
 

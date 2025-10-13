@@ -126,23 +126,26 @@ def _prepare_time_series_features(df: pd.DataFrame, dataset_info: DatasetInfo) -
         raise ValueError("Time series dataset requires a time column")
 
     df = df.copy()
-    df[dataset_info.time_column] = pd.to_datetime(df[dataset_info.time_column])
-    grouping = dataset_info.group_keys or []
-    df = df.sort_values((grouping or []) + [dataset_info.time_column])
+    df[dataset_info.time_column] = pd.to_datetime(
+        df[dataset_info.time_column], errors="coerce"
+    )
+    df = df.dropna(subset=[dataset_info.time_column, dataset_info.target])
+    group_keys = dataset_info.group_keys or []
+    sort_columns = group_keys + [dataset_info.time_column]
+    df = df.sort_values(sort_columns)
 
-    feature_cols = [col for col in dataset_info.features if col != dataset_info.target]
-    grouped = df.groupby(grouping) if grouping else [(None, df)]
+    grouped = df.groupby(group_keys, group_keys=False) if group_keys else [(None, df)]
     for _, group_df in grouped:
         idx = group_df.index
         df.loc[idx, "lag_1"] = group_df[dataset_info.target].shift(1)
         df.loc[idx, "lag_7"] = group_df[dataset_info.target].shift(7)
         df.loc[idx, "rolling_mean_7"] = group_df[dataset_info.target].rolling(window=7, min_periods=1).mean()
-    df = df.dropna(subset=["lag_1", "lag_7"])
 
-    extra_features = ["lag_1", "lag_7", "rolling_mean_7"]
-    X = df[feature_cols + extra_features].drop(columns=[dataset_info.time_column], errors="ignore")
-    y = df[dataset_info.target]
-    return X, y
+    df = df.dropna(subset=["lag_1", "lag_7"])
+    feature_cols = [col for col in df.columns if col != dataset_info.target]
+    if dataset_info.time_column in feature_cols:
+        feature_cols.remove(dataset_info.time_column)
+    return df[feature_cols], df[dataset_info.target]
 
 
 def _prepare_recommendation(df: pd.DataFrame, dataset_info: DatasetInfo) -> Tuple[pd.DataFrame, pd.Series]:
@@ -153,7 +156,7 @@ def _prepare_recommendation(df: pd.DataFrame, dataset_info: DatasetInfo) -> Tupl
 
 
 def train_dataset(dataset_info: DatasetInfo) -> ModelResult:
-    df = pd.read_csv(dataset_info.path)
+    df = dataset_info.load_dataframe()
 
     if dataset_info.task == TaskType.REGRESSION:
         X, y = _split_xy(df, dataset_info)
