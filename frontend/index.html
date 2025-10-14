@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 Jarvis IA - Asistente Inteligente</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <h1>Jarvis IA</h1>
+            </div>
+            <div class="status-indicator" id="apiStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Conectando...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-tabs">
+        <div class="container">
+            <button class="nav-tab active" data-tab="dashboard">
+                <i class="fas fa-home"></i>
+                Dashboard
+            </button>
+            <button class="nav-tab" data-tab="ml-models">
+                <i class="fas fa-brain"></i>
+                Modelos ML
+            </button>
+            <button class="nav-tab" data-tab="voice">
+                <i class="fas fa-microphone"></i>
+                Speech-to-Text
+            </button>
+            <button class="nav-tab" data-tab="face">
+                <i class="fas fa-smile"></i>
+                Reconocimiento Facial
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Dashboard Tab -->
+        <section id="dashboard" class="tab-content active">
+            <div class="welcome-section">
+                <h2>¡Bienvenido a Jarvis IA! 🤖</h2>
+                <p class="subtitle">Tu asistente inteligente con Machine Learning, Speech-to-Text y Reconocimiento Facial</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon ml">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="modelCount">-</h3>
+                        <p>Modelos ML</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon voice">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="voiceStatus">-</h3>
+                        <p>Speech-to-Text</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon face">
+                        <i class="fas fa-smile"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="faceStatus">-</h3>
+                        <p>Face Recognition</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon api">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="apiVersion">-</h3>
+                        <p>API REST</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features-section">
+                <h3>🚀 Funcionalidades Principales</h3>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-chart-line"></i>
+                        <h4>Predicciones ML</h4>
+                        <p>9 modelos de Machine Learning entrenados para diferentes casos de uso</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-comments"></i>
+                        <h4>Comandos de Voz</h4>
+                        <p>Ejecuta predicciones mediante comandos de voz en tiempo real</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-user-check"></i>
+                        <h4>Análisis Facial</h4>
+                        <p>Detecta emociones y sentimientos usando tu cámara</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-bolt"></i>
+                        <h4>Tiempo Real</h4>
+                        <p>Respuestas instantáneas con alta precisión</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-start">
+                <h3>📖 Guía Rápida</h3>
+                <ol>
+                    <li><strong>Modelos ML:</strong> Selecciona un modelo y completa los datos para obtener predicciones</li>
+                    <li><strong>Speech-to-Text:</strong> Graba un comando de voz y Jarvis lo ejecutará automáticamente</li>
+                    <li><strong>Reconocimiento Facial:</strong> Toma una foto para analizar emociones y sentimientos</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- ML Models Tab -->
+        <section id="ml-models" class="tab-content">
+            <h2>🧠 Modelos de Machine Learning</h2>
+            <p class="subtitle">Selecciona un modelo para realizar predicciones</p>
+
+            <div class="models-container">
+                <div class="models-sidebar">
+                    <h3>Modelos Disponibles</h3>
+                    <div id="modelsList" class="models-list">
+                        <div class="loading">Cargando modelos...</div>
+                    </div>
+                </div>
+
+                <div class="model-panel">
+                    <div id="modelInfo" class="model-info">
+                        <div class="placeholder">
+                            <i class="fas fa-hand-pointer"></i>
+                            <p>Selecciona un modelo de la lista para comenzar</p>
+                        </div>
+                    </div>
+
+                    <div id="predictionForm" class="prediction-form" style="display: none;">
+                        <!-- Form will be generated dynamically -->
+                    </div>
+
+                    <div id="predictionResult" class="prediction-result" style="display: none;">
+                        <!-- Results will be shown here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Voice Tab -->
+        <section id="voice" class="tab-content">
+            <h2>🎤 Speech-to-Text & Comandos de Voz</h2>
+            <p class="subtitle">Graba un comando de voz para ejecutar predicciones de ML</p>
+
+            <div class="voice-container">
+                <div class="voice-panel">
+                    <div class="voice-visualizer" id="voiceVisualizer">
+                        <i class="fas fa-microphone-alt" id="micIcon"></i>
+                        <div class="voice-waves" id="voiceWaves">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+
+                    <div class="voice-controls">
+                        <button id="recordBtn" class="btn btn-primary btn-large">
+                            <i class="fas fa-microphone"></i>
+                            Iniciar Grabación
+                        </button>
+                        <button id="stopBtn" class="btn btn-danger btn-large" style="display: none;">
+                            <i class="fas fa-stop"></i>
+                            Detener Grabación
+                        </button>
+                    </div>
+
+                    <div class="voice-status" id="voiceStatusPanel">
+                        <p class="info-text">
+                            <i class="fas fa-info-circle"></i>
+                            Presiona "Iniciar Grabación" y di un comando como:
+                            <strong>"Jarvis, predice el precio de Bitcoin"</strong>
+                        </p>
+                    </div>
+
+                    <div class="transcript-box" id="transcriptBox" style="display: none;">
+                        <h4>📝 Transcripción</h4>
+                        <p id="transcriptText"></p>
+                        <div id="commandRecognized" style="display: none;">
+                            <span class="badge success">
+                                <i class="fas fa-check"></i>
+                                Comando reconocido
+                            </span>
+                            <p><strong>Modelo detectado:</strong> <span id="detectedModel"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="voice-info-panel">
+                    <h3>💡 Comandos de Ejemplo</h3>
+                    <div class="commands-list">
+                        <div class="command-item">
+                            <i class="fas fa-bitcoin-sign"></i>
+                            <span>"Jarvis, predice el precio de Bitcoin"</span>
+                        </div>
+                        <div class="command-item">
+                            <i class="fas fa-wine-glass"></i>
+                            <span>"Jarvis, analiza la calidad del vino"</span>
+                        </div>
+                        <div class="command-item">
+                            <i class="fas fa-car"></i>
+                            <span>"Jarvis, estima el valor del automóvil"</span>
+                        </div>
+                        <div class="command-item">
+                            <i class="fas fa-user-md"></i>
+                            <span>"Jarvis, evalúa riesgo de derrame"</span>
+                        </div>
+                        <div class="command-item">
+                            <i class="fas fa-heartbeat"></i>
+                            <span>"Jarvis, diagnostica hepatitis"</span>
+                        </div>
+                    </div>
+
+                    <div class="service-status-card">
+                        <h4>Estado del Servicio</h4>
+                        <div id="voiceServiceStatus">
+                            <span class="status-badge">Verificando...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Face Recognition Tab -->
+        <section id="face" class="tab-content">
+            <h2>😊 Reconocimiento Facial & Análisis de Emociones</h2>
+            <p class="subtitle">Captura una foto para detectar emociones y sentimientos</p>
+
+            <div class="face-container">
+                <div class="camera-panel">
+                    <div class="video-container" id="videoContainer">
+                        <video id="webcam" autoplay playsinline></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                        <div class="camera-overlay">
+                            <div class="face-outline"></div>
+                        </div>
+                    </div>
+
+                    <div class="camera-controls">
+                        <button id="startCameraBtn" class="btn btn-primary">
+                            <i class="fas fa-video"></i>
+                            Iniciar Cámara
+                        </button>
+                        <button id="captureBtn" class="btn btn-success" style="display: none;">
+                            <i class="fas fa-camera"></i>
+                            Capturar Foto
+                        </button>
+                        <button id="stopCameraBtn" class="btn btn-danger" style="display: none;">
+                            <i class="fas fa-video-slash"></i>
+                            Detener Cámara
+                        </button>
+                    </div>
+
+                    <div class="upload-option">
+                        <p class="divider"><span>o</span></p>
+                        <label for="fileInput" class="btn btn-secondary">
+                            <i class="fas fa-upload"></i>
+                            Subir Imagen
+                        </label>
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="emotion-results-panel">
+                    <div id="emotionPlaceholder" class="placeholder-emotions">
+                        <i class="fas fa-smile-beam"></i>
+                        <p>Captura una foto o sube una imagen para analizar emociones</p>
+                    </div>
+
+                    <div id="emotionResults" style="display: none;">
+                        <h3>📊 Resultados del Análisis</h3>
+                        
+                        <div class="captured-image">
+                            <img id="capturedImage" alt="Foto capturada">
+                        </div>
+
+                        <div class="dominant-emotion">
+                            <h4>Emoción Dominante</h4>
+                            <div class="emotion-badge" id="dominantEmotion">
+                                <i class="fas fa-smile"></i>
+                                <span>-</span>
+                            </div>
+                            <p class="confidence">Confianza: <strong id="emotionConfidence">-</strong></p>
+                        </div>
+
+                        <div class="emotions-chart">
+                            <h4>Todas las Emociones Detectadas</h4>
+                            <div id="emotionsBar">
+                                <!-- Emotion bars will be generated here -->
+                            </div>
+                        </div>
+
+                        <div class="face-info">
+                            <p><i class="fas fa-users"></i> Rostros detectados: <strong id="faceCount">-</strong></p>
+                        </div>
+                    </div>
+
+                    <div class="service-status-card">
+                        <h4>Estado del Servicio</h4>
+                        <div id="faceServiceStatus">
+                            <span class="status-badge">Verificando...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>🤖 Jarvis IA - Proyecto de Inteligencia Artificial | TEC 2025</p>
+            <p class="footer-links">
+                <a href="../docs/QUICK_START.md" target="_blank">Documentación</a> •
+                <a href="http://localhost:8000/docs" target="_blank">API Docs</a> •
+                <a href="https://github.com/MaikelHR/Proyecto1IA-Jarvis" target="_blank">GitHub</a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="app.js?v=6"></script>
+</body>
+</html>

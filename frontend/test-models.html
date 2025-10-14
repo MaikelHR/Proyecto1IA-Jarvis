@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Carga de Modelos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #fff;
+        }
+        .test-section {
+            background: #1e293b;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border-left: 4px solid #2563eb;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        pre {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #1e40af;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        .model-item {
+            background: #334155;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test de Carga de Modelos ML</h1>
+    
+    <div class="test-section">
+        <h2>Estado del Backend</h2>
+        <button onclick="testBackendHealth()">Verificar Backend</button>
+        <div id="backend-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Carga de Modelos</h2>
+        <button onclick="loadModels()">Cargar Modelos</button>
+        <div id="models-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Lista de Modelos</h2>
+        <div id="models-list"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Log de Consola</h2>
+        <pre id="console-log"></pre>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        let consoleLog = [];
+        
+        // Capturar logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            consoleLog.push('[LOG] ' + args.join(' '));
+            updateConsoleDisplay();
+            originalLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            consoleLog.push('[ERROR] ' + args.join(' '));
+            updateConsoleDisplay();
+            originalError.apply(console, args);
+        };
+        
+        function updateConsoleDisplay() {
+            document.getElementById('console-log').textContent = consoleLog.join('\n');
+        }
+        
+        async function testBackendHealth() {
+            const statusDiv = document.getElementById('backend-status');
+            statusDiv.innerHTML = '<p>Probando conexión...</p>';
+            
+            try {
+                console.log('Intentando conectar a:', API_BASE_URL + '/health');
+                const response = await fetch(API_BASE_URL + '/health');
+                console.log('Response status:', response.status);
+                
+                const data = await response.json();
+                console.log('Health data:', JSON.stringify(data, null, 2));
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = `
+                        <p class="success">✓ Backend conectado correctamente</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    statusDiv.innerHTML = `
+                        <p class="error">✗ Backend respondió con error ${response.status}</p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error conectando al backend:', error);
+                statusDiv.innerHTML = `
+                    <p class="error">✗ Error al conectar: ${error.message}</p>
+                    <p>Verifica que el backend esté corriendo en http://localhost:8000</p>
+                `;
+            }
+        }
+        
+        async function loadModels() {
+            const statusDiv = document.getElementById('models-status');
+            const listDiv = document.getElementById('models-list');
+            
+            statusDiv.innerHTML = '<p>Cargando modelos...</p>';
+            listDiv.innerHTML = '';
+            
+            try {
+                console.log('Fetching models from:', API_BASE_URL + '/predictions/datasets');
+                const response = await fetch(API_BASE_URL + '/predictions/datasets');
+                console.log('Models response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const models = await response.json();
+                console.log('Models received:', models.length);
+                console.log('Models data:', JSON.stringify(models, null, 2));
+                
+                if (models.length === 0) {
+                    statusDiv.innerHTML = '<p class="error">✗ No se encontraron modelos</p>';
+                    return;
+                }
+                
+                statusDiv.innerHTML = `<p class="success">✓ ${models.length} modelos cargados correctamente</p>`;
+                
+                listDiv.innerHTML = '<h3>Modelos Disponibles:</h3>';
+                models.forEach((model, index) => {
+                    const modelDiv = document.createElement('div');
+                    modelDiv.className = 'model-item';
+                    modelDiv.innerHTML = `
+                        <strong>${index + 1}. ${model.name}</strong>
+                        <br>Key: ${model.key}
+                        <br>Task: ${model.task}
+                        <br>Target: ${model.target}
+                    `;
+                    listDiv.appendChild(modelDiv);
+                    
+                    console.log(`Modelo ${index + 1}:`, model.key, '-', model.name);
+                });
+                
+            } catch (error) {
+                console.error('Error loading models:', error);
+                statusDiv.innerHTML = `
+                    <p class="error">✗ Error al cargar modelos: ${error.message}</p>
+                `;
+            }
+        }
+        
+        // Auto-test al cargar la página
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Página de test cargada');
+            console.log('API Base URL:', API_BASE_URL);
+            
+            // Auto-ejecutar tests
+            setTimeout(() => {
+                console.log('Ejecutando auto-test...');
+                testBackendHealth();
+                setTimeout(() => loadModels(), 1000);
+            }, 500);
+        });
+    </script>
+</body>
+</html>

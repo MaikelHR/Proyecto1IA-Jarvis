@@ -1,4 +1,37 @@
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
 *.pyc
-reports/*.json
-reports/*.pkl
+
+# Credentials and secrets (IMPORTANTE)
+credentials/
+*.json
+!package.json
+!tsconfig.json
+.env
+.env.local
+
+# Audio files
+temp_audio/
+*.wav
+*.mp3
+*.flac
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Reports (mantener para el proyecto)
+# reports/*.json
+# reports/*.pkl

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba API Jarvis</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            border-radius: 5px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .success {
+            background: #27ae60;
+        }
+        .error {
+            background: #e74c3c;
+        }
+        .loading {
+            color: #f39c12;
+        }
+        pre {
+            margin: 0;
+        }
+        .json-view {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Prueba de API Jarvis IA</h1>
+        
+        <div class="test-section">
+            <h2>🍷 Prueba 1: Wine Quality</h2>
+            <p><strong>Endpoint:</strong> POST /predictions/wine_quality</p>
+            
+            <div class="json-view">{
+  "features": {
+    "type": "white",
+    "fixed_acidity": 7.0,
+    "volatile_acidity": 0.27,
+    "citric_acid": 0.36,
+    "residual_sugar": 20.7,
+    "chlorides": 0.045,
+    "free_sulfur_dioxide": 45.0,
+    "total_sulfur_dioxide": 170.0,
+    "density": 1.001,
+    "p_h": 3.0,
+    "sulphates": 0.45,
+    "alcohol": 8.8
+  }
+}</div>
+            
+            <button onclick="testWineQuality()">🚀 Probar Wine Quality</button>
+            <div id="wine-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Prueba 2: Telco Churn</h2>
+            <p><strong>Endpoint:</strong> POST /predictions/telco_churn</p>
+            
+            <div class="json-view">{
+  "features": {
+    "customer_id": "1234-ABCDE",
+    "gender": "Male",
+    "senior_citizen": 0,
+    "partner": "No",
+    "dependents": "No",
+    "tenure": 3,
+    "phone_service": "Yes",
+    "multiple_lines": "No",
+    "internet_service": "Fiber optic",
+    "online_security": "No",
+    "online_backup": "No",
+    "device_protection": "No",
+    "tech_support": "No",
+    "streaming_tv": "Yes",
+    "streaming_movies": "Yes",
+    "contract": "Month-to-month",
+    "paperless_billing": "Yes",
+    "payment_method": "Electronic check",
+    "monthly_charges": 85.0,
+    "total_charges": 255.0
+  }
+}</div>
+            
+            <button onclick="testTelcoChurn()">🚀 Probar Telco Churn</button>
+            <div id="telco-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>💪 Prueba 3: Body Fat</h2>
+            <p><strong>Endpoint:</strong> POST /predictions/body_fat</p>
+            
+            <div class="json-view">{
+  "features": {
+    "density": 1.0708,
+    "age": 25,
+    "weight": 165.0,
+    "height": 70.0,
+    "neck": 36.0,
+    "chest": 95.0,
+    "abdomen": 78.0,
+    "hip": 95.0,
+    "thigh": 55.0,
+    "knee": 36.0,
+    "ankle": 22.0,
+    "biceps": 30.0,
+    "forearm": 28.0,
+    "wrist": 17.5
+  }
+}</div>
+            
+            <button onclick="testBodyFat()">🚀 Probar Body Fat</button>
+            <div id="bodyfat-response" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🏥 Health Check</h2>
+            <button onclick="testHealth()">🔍 Verificar Estado de la API</button>
+            <div id="health-response" class="response" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        async function makeRequest(endpoint, data = null) {
+            try {
+                const options = {
+                    method: data ? 'POST' : 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const json = await response.json();
+
+                return {
+                    status: response.status,
+                    success: response.ok,
+                    data: json
+                };
+            } catch (error) {
+                return {
+                    status: 0,
+                    success: false,
+                    data: { error: error.message }
+                };
+            }
+        }
+
+        function displayResponse(elementId, result) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            
+            let className = 'response ';
+            if (result.status === 0) {
+                className += 'error';
+            } else if (result.success) {
+                className += 'success';
+            } else {
+                className += 'error';
+            }
+            
+            element.className = className;
+            element.innerHTML = `<strong>Status: ${result.status}</strong>\n\n${JSON.stringify(result.data, null, 2)}`;
+        }
+
+        async function testWineQuality() {
+            const data = {
+                features: {
+                    type: "white",
+                    fixed_acidity: 7.0,
+                    volatile_acidity: 0.27,
+                    citric_acid: 0.36,
+                    residual_sugar: 20.7,
+                    chlorides: 0.045,
+                    free_sulfur_dioxide: 45.0,
+                    total_sulfur_dioxide: 170.0,
+                    density: 1.001,
+                    p_h: 3.0,
+                    sulphates: 0.45,
+                    alcohol: 8.8
+                }
+            };
+
+            const result = await makeRequest('/predictions/wine_quality', data);
+            displayResponse('wine-response', result);
+        }
+
+        async function testTelcoChurn() {
+            const data = {
+                features: {
+                    customer_id: "1234-ABCDE",
+                    gender: "Male",
+                    senior_citizen: 0,
+                    partner: "No",
+                    dependents: "No",
+                    tenure: 3,
+                    phone_service: "Yes",
+                    multiple_lines: "No",
+                    internet_service: "Fiber optic",
+                    online_security: "No",
+                    online_backup: "No",
+                    device_protection: "No",
+                    tech_support: "No",
+                    streaming_tv: "Yes",
+                    streaming_movies: "Yes",
+                    contract: "Month-to-month",
+                    paperless_billing: "Yes",
+                    payment_method: "Electronic check",
+                    monthly_charges: 85.0,
+                    total_charges: 255.0
+                }
+            };
+
+            const result = await makeRequest('/predictions/telco_churn', data);
+            displayResponse('telco-response', result);
+        }
+
+        async function testBodyFat() {
+            const data = {
+                features: {
+                    density: 1.0708,
+                    age: 25,
+                    weight: 165.0,
+                    height: 70.0,
+                    neck: 36.0,
+                    chest: 95.0,
+                    abdomen: 78.0,
+                    hip: 95.0,
+                    thigh: 55.0,
+                    knee: 36.0,
+                    ankle: 22.0,
+                    biceps: 30.0,
+                    forearm: 28.0,
+                    wrist: 17.5
+                }
+            };
+
+            const result = await makeRequest('/predictions/body_fat', data);
+            displayResponse('bodyfat-response', result);
+        }
+
+        async function testHealth() {
+            const result = await makeRequest('/health');
+            displayResponse('health-response', result);
+        }
+    </script>
+</body>
+</html>
