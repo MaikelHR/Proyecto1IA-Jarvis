@@ -54,7 +54,8 @@ class SpeechToTextService:
         audio_content: bytes,
         language_code: str = "es-ES",
         sample_rate_hertz: int = 16000,
-        encoding: speech.RecognitionConfig.AudioEncoding = speech.RecognitionConfig.AudioEncoding.LINEAR16
+        encoding: speech.RecognitionConfig.AudioEncoding = speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        use_enhanced: bool = True
     ) -> Tuple[str, float]:
         """
         Transcribe audio content to text.
@@ -64,6 +65,7 @@ class SpeechToTextService:
             language_code: Language code (default: es-ES for Spanish)
             sample_rate_hertz: Audio sample rate
             encoding: Audio encoding format
+            use_enhanced: Use enhanced model optimized for commands
             
         Returns:
             Tuple of (transcribed_text, confidence_score)
@@ -75,33 +77,52 @@ class SpeechToTextService:
         client = self._get_client()
         
         # Configure recognition settings
+        # Use "command_and_search" model for better command recognition
         config = speech.RecognitionConfig(
             encoding=encoding,
             sample_rate_hertz=sample_rate_hertz,
             language_code=language_code,
             enable_automatic_punctuation=True,
-            model="default",  # Can use "command_and_search" for commands
+            model="command_and_search" if use_enhanced else "default",
+            use_enhanced=use_enhanced,
+            # Add alternative languages for better recognition
+            alternative_language_codes=["es-MX", "es-419"] if language_code.startswith("es") else [],
         )
         
         audio = speech.RecognitionAudio(content=audio_content)
         
         try:
+            print(f"🎤 Enviando a Google Speech API...")
+            print(f"   - Audio size: {len(audio_content)} bytes")
+            print(f"   - Language: {language_code}")
+            print(f"   - Sample rate: {sample_rate_hertz}")
+            print(f"   - Encoding: {encoding}")
+            
             # Perform recognition
             response = client.recognize(config=config, audio=audio)
+            
+            print(f"📤 Respuesta recibida de Google")
+            print(f"   - Número de resultados: {len(response.results) if response.results else 0}")
             
             # Extract best result
             if response.results:
                 result = response.results[0]
+                print(f"   - Resultado tiene {len(result.alternatives)} alternativas")
                 if result.alternatives:
                     alternative = result.alternatives[0]
                     transcript = alternative.transcript
                     confidence = alternative.confidence
+                    print(f"✅ Transcripción exitosa: '{transcript}' (confianza: {confidence})")
                     return transcript, confidence
             
             # No speech detected
+            print("⚠️ No se detectó voz en el audio")
             return "", 0.0
             
         except GoogleAPIError as e:
+            print(f"❌ GoogleAPIError: {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise GoogleAPIError(f"Google Speech API error: {str(e)}") from e
     
     def transcribe_base64_audio(
@@ -120,12 +141,42 @@ class SpeechToTextService:
             Tuple of (transcribed_text, confidence_score)
         """
         # Decode base64 audio
+        print(f"📥 Decodificando base64 audio: {len(audio_base64)} caracteres")
         audio_content = base64.b64decode(audio_base64)
+        print(f"📥 Audio decodificado: {len(audio_content)} bytes")
         
-        return self.transcribe_audio(
-            audio_content=audio_content,
-            language_code=language_code
-        )
+        # Try WEBM_OPUS first (browser default)
+        print("🎯 Intentando con WEBM_OPUS encoding...")
+        try:
+            transcript, confidence = self.transcribe_audio(
+                audio_content=audio_content,
+                language_code=language_code,
+                sample_rate_hertz=48000,
+                encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
+                use_enhanced=True
+            )
+            
+            if transcript:  # Si obtenemos transcripción, retornar
+                return transcript, confidence
+            
+            print("⚠️ WEBM_OPUS no detectó voz. Intentando con ENCODING_UNSPECIFIED...")
+        except Exception as e:
+            print(f"⚠️ Error con WEBM_OPUS: {str(e)}")
+            print("🔄 Intentando con ENCODING_UNSPECIFIED...")
+        
+        # Fallback: Let Google auto-detect the encoding
+        try:
+            return self.transcribe_audio(
+                audio_content=audio_content,
+                language_code=language_code,
+                sample_rate_hertz=48000,
+                encoding=speech.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED,
+                use_enhanced=True
+            )
+        except Exception as e:
+            print(f"❌ Error con ENCODING_UNSPECIFIED: {str(e)}")
+            # Return empty if all attempts fail
+            return "", 0.0
     
     def transcribe_file(
         self,

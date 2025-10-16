@@ -1,8 +1,10 @@
-"""Face recognition and emotion detection service using Azure Face API."""
+"""Face recognition and emotion detection service using Azure Face API with local fallback."""
 
 from __future__ import annotations
 
 import os
+import tempfile
+from io import BytesIO
 from typing import Dict, List, Optional, Tuple
 
 from azure.cognitiveservices.vision.face import FaceClient
@@ -14,7 +16,12 @@ from msrest.authentication import CognitiveServicesCredentials
 
 
 class FaceRecognitionService:
-    """Service for face detection and emotion analysis using Azure Face API."""
+    """
+    Service for face detection and emotion analysis.
+    
+    Uses Azure Face API as primary service with DeepFace as local fallback.
+    This hybrid approach ensures functionality during Azure approval process.
+    """
     
     # Emotion labels in Spanish
     EMOTION_LABELS_ES = {
@@ -23,16 +30,20 @@ class FaceRecognitionService:
         "disgust": "disgusto",
         "fear": "miedo",
         "happiness": "felicidad",
+        "happy": "felicidad",  # DeepFace usa "happy"
         "neutral": "neutral",
         "sadness": "tristeza",
+        "sad": "tristeza",  # DeepFace usa "sad"
         "surprise": "sorpresa",
     }
     
     def __init__(self):
-        """Initialize the Face Recognition client."""
+        """Initialize the Face Recognition client with hybrid support."""
         self._client: Optional[FaceClient] = None
         self._credentials_configured = False
+        self._local_fallback_available = False
         self._check_credentials()
+        self._init_local_fallback()
     
     def _check_credentials(self) -> None:
         """Check if Azure Face API credentials are configured."""
@@ -41,12 +52,30 @@ class FaceRecognitionService:
         
         if self.api_key and self.endpoint:
             self._credentials_configured = True
-            print(f"✓ Azure Face API configurada")
+            print(f"✓ Azure Face API configurada (Primary)")
             print(f"  Endpoint: {self.endpoint}")
         else:
             self._credentials_configured = False
             print("⚠ Azure Face API NO configurada")
             print("  Configure AZURE_FACE_KEY y AZURE_FACE_ENDPOINT")
+    
+    def _init_local_fallback(self) -> None:
+        """Initialize local emotion detection as fallback."""
+        try:
+            # Try importing DeepFace with detailed error reporting
+            import sys
+            import deepface
+            from deepface import DeepFace
+            self._local_fallback_available = True
+            print("+ DeepFace disponible (Local Fallback)")
+            print("  Nota: Se usara si Azure Face API no esta disponible")
+        except ImportError as e:
+            self._local_fallback_available = False
+            print(f"! DeepFace no disponible: {str(e)}")
+            print("  Instalar con: pip install deepface")
+        except Exception as e:
+            self._local_fallback_available = False
+            print(f"! Error al cargar DeepFace: {str(e)}")
     
     def _get_client(self) -> FaceClient:
         """Get or create Face API client."""
@@ -103,23 +132,76 @@ class FaceRecognitionService:
                 FaceAttributeType.noise,
             ]
         
-        # Detect faces
-        detected_faces = client.face.detect_with_stream(
-            image=image_data,
-            return_face_attributes=face_attributes,
-            return_face_landmarks=return_face_landmarks,
-            recognition_model="recognition_04",  # Latest model
-            detection_model="detection_03",      # Latest detection model
-        )
+        # Wrap bytes in BytesIO for stream processing
+        image_stream = BytesIO(image_data)
         
-        return detected_faces
+        try:
+            # Detect faces
+            detected_faces = client.face.detect_with_stream(
+                image=image_stream,
+                return_face_attributes=face_attributes,
+                return_face_landmarks=return_face_landmarks,
+                recognition_model="recognition_04",  # Latest model
+                detection_model="detection_03",      # Latest detection model
+            )
+            
+            return detected_faces
+        except Exception as e:
+            print(f"❌ Error detallado de Azure Face API:")
+            print(f"   - Tipo de error: {type(e).__name__}")
+            print(f"   - Mensaje: {str(e)}")
+            if hasattr(e, 'response'):
+                print(f"   - Response: {e.response}")
+            if hasattr(e, 'error'):
+                print(f"   - Error details: {e.error}")
+            raise
     
     def analyze_emotions(
         self,
         image_data: bytes
     ) -> Dict[str, any]:
         """
-        Analyze emotions from an image.
+        Analyze emotions from an image using hybrid approach.
+        
+        Tries Azure Face API first, falls back to DeepFace if Azure fails.
+        
+        Args:
+            image_data: Image data in bytes
+            
+        Returns:
+            Dictionary with emotion analysis results
+        """
+        print(f"🔍 Analizando emociones (Hybrid Mode)...")
+        print(f"   - Tamaño de imagen: {len(image_data)} bytes")
+        
+        # Try Azure Face API first
+        if self._credentials_configured:
+            try:
+                print(f"   - Intentando con Azure Face API...")
+                return self._analyze_emotions_azure(image_data)
+            except Exception as e:
+                print(f"⚠️ Azure Face API falló: {str(e)}")
+                print(f"   - Probablemente requiere aprobación de Microsoft")
+                print(f"   - Cambiando a fallback local (DeepFace)...")
+        
+        # Fallback to local DeepFace
+        if self._local_fallback_available:
+            try:
+                print(f"   - Usando DeepFace (Local Fallback)...")
+                return self._analyze_emotions_local(image_data)
+            except Exception as e:
+                print(f"❌ Error en DeepFace: {str(e)}")
+                raise
+        
+        # No service available
+        raise ValueError(
+            "No emotion detection service available. "
+            "Azure requires approval and DeepFace is not installed."
+        )
+    
+    def _analyze_emotions_azure(self, image_data: bytes) -> Dict[str, any]:
+        """
+        Analyze emotions using Azure Face API.
         
         Args:
             image_data: Image data in bytes
@@ -331,6 +413,91 @@ class FaceRecognitionService:
             results.append(face_data)
         
         return results
+    
+    def _analyze_emotions_local(self, image_data: bytes) -> Dict[str, any]:
+        """
+        Analyze emotions using DeepFace (local fallback).
+        
+        Args:
+            image_data: Image data in bytes
+            
+        Returns:
+            Dictionary with emotion analysis results in same format as Azure
+        """
+        from deepface import DeepFace
+        import numpy as np
+        import cv2
+        
+        # Convert bytes to numpy array for OpenCV
+        nparr = np.frombuffer(image_data, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            raise ValueError("No se pudo decodificar la imagen")
+        
+        # Analyze with DeepFace
+        try:
+            result = DeepFace.analyze(
+                img_path=img,
+                actions=['emotion'],
+                enforce_detection=False,
+                silent=True
+            )
+            
+            # DeepFace returns a list if multiple faces, dict if single face
+            if isinstance(result, list):
+                if len(result) == 0:
+                    return {
+                        "face_detected": False,
+                        "num_faces": 0,
+                        "emotions": {},
+                        "dominant_emotion": None,
+                        "confidence": 0.0,
+                        "message": "No se detectó ningún rostro en la imagen",
+                        "source": "deepface"
+                    }
+                result = result[0]  # Use first face
+            
+            # Extract emotions
+            emotions_raw = result.get('emotion', {})
+            
+            # Normalize emotion names to match Azure format
+            # Convert numpy.float32 to native Python float
+            emotions = {
+                "anger": float(emotions_raw.get('angry', 0)) / 100,
+                "disgust": float(emotions_raw.get('disgust', 0)) / 100,
+                "fear": float(emotions_raw.get('fear', 0)) / 100,
+                "happiness": float(emotions_raw.get('happy', 0)) / 100,
+                "neutral": float(emotions_raw.get('neutral', 0)) / 100,
+                "sadness": float(emotions_raw.get('sad', 0)) / 100,
+                "surprise": float(emotions_raw.get('surprise', 0)) / 100,
+                "contempt": 0.0  # DeepFace no tiene contempt
+            }
+            
+            # Find dominant emotion
+            dominant_emotion = max(emotions.items(), key=lambda x: x[1])
+            
+            return {
+                "face_detected": True,
+                "num_faces": 1,
+                "emotions": emotions,
+                "emotions_es": {
+                    self.EMOTION_LABELS_ES.get(k, k): float(v) 
+                    for k, v in emotions.items()
+                },
+                "dominant_emotion": dominant_emotion[0],
+                "dominant_emotion_es": self.EMOTION_LABELS_ES.get(
+                    dominant_emotion[0], 
+                    dominant_emotion[0]
+                ),
+                "confidence": float(dominant_emotion[1]),
+                "message": f"Emoción detectada: {self.EMOTION_LABELS_ES.get(dominant_emotion[0], dominant_emotion[0])} ({dominant_emotion[1]:.2%})",
+                "source": "deepface"  # Indicate this came from local fallback
+            }
+            
+        except Exception as e:
+            print(f"❌ Error en análisis DeepFace: {str(e)}")
+            raise
 
 
 # Global singleton instance

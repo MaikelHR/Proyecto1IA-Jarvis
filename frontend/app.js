@@ -136,8 +136,10 @@ async function loadModels() {
             const modelItem = document.createElement('div');
             modelItem.className = 'model-item';
             modelItem.innerHTML = `
-                <h4>${model.name}</h4>
-                <p>${model.task}</p>
+                <div class="model-item-content">
+                    <h4><i class="fas fa-check-circle model-check"></i>${model.name}</h4>
+                    <p>${model.task}</p>
+                </div>
             `;
             
             modelItem.addEventListener('click', () => selectModel(model));
@@ -179,17 +181,23 @@ function selectModel(modelOrEvent) {
     console.log('🎯 Seleccionando modelo:', model.name);
     state.selectedModel = model;
     
-    // Update UI
+    // Update UI - Remover active de todos los items
     document.querySelectorAll('.model-item').forEach(item => {
         item.classList.remove('active');
     });
     
+    // Agregar active al item correcto
     if (targetElement) {
+        // Si fue un click, usar el elemento clickeado
         targetElement.classList.add('active');
     } else {
-        // Si no hay elemento target, activar el primero
-        const firstItem = document.querySelector('.model-item');
-        if (firstItem) firstItem.classList.add('active');
+        // Si fue selección programática, encontrar el item por el key del modelo
+        const modelItems = document.querySelectorAll('.model-item');
+        modelItems.forEach((item, index) => {
+            if (state.modelsData[index] && state.modelsData[index].key === model.key) {
+                item.classList.add('active');
+            }
+        });
     }
     
     // Show model info
@@ -261,74 +269,80 @@ function loadExampleForm(modelKey) {
     const formFields = {
         'telco_churn': [
             { name: 'gender', type: 'select', label: 'Género', options: ['Male', 'Female'] },
-            { name: 'senior_citizen', type: 'number', label: 'Senior Citizen (0/1)', value: 0 },
-            { name: 'partner', type: 'select', label: 'Pareja', options: ['Yes', 'No'] },
-            { name: 'dependents', type: 'select', label: 'Dependientes', options: ['Yes', 'No'] },
+            { name: 'SeniorCitizen', type: 'number', label: 'Senior Citizen (0/1)', value: 0 },
+            { name: 'Partner', type: 'select', label: 'Pareja', options: ['Yes', 'No'] },
+            { name: 'Dependents', type: 'select', label: 'Dependientes', options: ['Yes', 'No'] },
             { name: 'tenure', type: 'number', label: 'Tiempo de servicio (meses)', value: 12 },
-            { name: 'phone_service', type: 'select', label: 'Servicio telefónico', options: ['Yes', 'No'] },
-            { name: 'multiple_lines', type: 'select', label: 'Múltiples líneas', options: ['Yes', 'No', 'No phone service'] },
-            { name: 'internet_service', type: 'select', label: 'Servicio de internet', options: ['DSL', 'Fiber optic', 'No'] },
-            { name: 'online_security', type: 'select', label: 'Seguridad online', options: ['Yes', 'No', 'No internet service'] },
-            { name: 'online_backup', type: 'select', label: 'Backup online', options: ['Yes', 'No', 'No internet service'] },
-            { name: 'device_protection', type: 'select', label: 'Protección de dispositivo', options: ['Yes', 'No', 'No internet service'] },
-            { name: 'tech_support', type: 'select', label: 'Soporte técnico', options: ['Yes', 'No', 'No internet service'] },
-            { name: 'streaming_t_v', type: 'select', label: 'Streaming TV', options: ['Yes', 'No', 'No internet service'] },
-            { name: 'streaming_movies', type: 'select', label: 'Streaming películas', options: ['Yes', 'No', 'No internet service'] },
-            { name: 'contract', type: 'select', label: 'Contrato', options: ['Month-to-month', 'One year', 'Two year'] },
-            { name: 'paperless_billing', type: 'select', label: 'Facturación sin papel', options: ['Yes', 'No'] },
-            { name: 'payment_method', type: 'select', label: 'Método de pago', options: ['Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)'] },
-            { name: 'monthly_charges', type: 'number', label: 'Cargo mensual ($)', value: 70.35, step: 0.01 },
-            { name: 'total_charges', type: 'number', label: 'Cargo total ($)', value: 1397.475, step: 0.01 }
+            { name: 'PhoneService', type: 'select', label: 'Servicio telefónico', options: ['Yes', 'No'] },
+            { name: 'MultipleLines', type: 'select', label: 'Múltiples líneas', options: ['Yes', 'No', 'No phone service'] },
+            { name: 'InternetService', type: 'select', label: 'Servicio de internet', options: ['DSL', 'Fiber optic', 'No'] },
+            { name: 'OnlineSecurity', type: 'select', label: 'Seguridad online', options: ['Yes', 'No', 'No internet service'] },
+            { name: 'OnlineBackup', type: 'select', label: 'Backup online', options: ['Yes', 'No', 'No internet service'] },
+            { name: 'DeviceProtection', type: 'select', label: 'Protección de dispositivo', options: ['Yes', 'No', 'No internet service'] },
+            { name: 'TechSupport', type: 'select', label: 'Soporte técnico', options: ['Yes', 'No', 'No internet service'] },
+            { name: 'StreamingTV', type: 'select', label: 'Streaming TV', options: ['Yes', 'No', 'No internet service'] },
+            { name: 'StreamingMovies', type: 'select', label: 'Streaming películas', options: ['Yes', 'No', 'No internet service'] },
+            { name: 'Contract', type: 'select', label: 'Contrato', options: ['Month-to-month', 'One year', 'Two year'] },
+            { name: 'PaperlessBilling', type: 'select', label: 'Facturación sin papel', options: ['Yes', 'No'] },
+            { name: 'PaymentMethod', type: 'select', label: 'Método de pago', options: ['Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)'] },
+            { name: 'MonthlyCharges', type: 'number', label: 'Cargo mensual ($)', value: 70.35, step: 0.01 },
+            { name: 'TotalCharges', type: 'number', label: 'Cargo total ($)', value: 1397.475, step: 0.01 }
         ],
         'wine_quality': [
-            { name: 'fixed_acidity', type: 'number', label: 'Acidez fija', value: 7.0, step: 0.1 },
-            { name: 'volatile_acidity', type: 'number', label: 'Acidez volátil', value: 0.27, step: 0.01 },
-            { name: 'citric_acid', type: 'number', label: 'Ácido cítrico', value: 0.36, step: 0.01 },
-            { name: 'residual_sugar', type: 'number', label: 'Azúcar residual', value: 20.7, step: 0.1 },
+            { name: 'type', type: 'select', label: 'Tipo de vino', options: ['white', 'red'] },
+            { name: 'fixed acidity', type: 'number', label: 'Acidez fija', value: 7.0, step: 0.1 },
+            { name: 'volatile acidity', type: 'number', label: 'Acidez volátil', value: 0.27, step: 0.01 },
+            { name: 'citric acid', type: 'number', label: 'Ácido cítrico', value: 0.36, step: 0.01 },
+            { name: 'residual sugar', type: 'number', label: 'Azúcar residual', value: 20.7, step: 0.1 },
             { name: 'chlorides', type: 'number', label: 'Cloruros', value: 0.045, step: 0.001 },
-            { name: 'free_sulfur_dioxide', type: 'number', label: 'Dióxido de azufre libre', value: 45.0, step: 0.1 },
-            { name: 'total_sulfur_dioxide', type: 'number', label: 'Dióxido de azufre total', value: 170.0, step: 0.1 },
+            { name: 'free sulfur dioxide', type: 'number', label: 'Dióxido de azufre libre', value: 45.0, step: 0.1 },
+            { name: 'total sulfur dioxide', type: 'number', label: 'Dióxido de azufre total', value: 170.0, step: 0.1 },
             { name: 'density', type: 'number', label: 'Densidad', value: 1.001, step: 0.001 },
-            { name: 'p_h', type: 'number', label: 'pH', value: 3.0, step: 0.01 },
+            { name: 'pH', type: 'number', label: 'pH', value: 3.0, step: 0.01 },
             { name: 'sulphates', type: 'number', label: 'Sulfatos', value: 0.45, step: 0.01 },
-            { name: 'alcohol', type: 'number', label: 'Alcohol (%)', value: 8.8, step: 0.1 },
-            { name: 'type', type: 'select', label: 'Tipo de vino', options: ['white', 'red'] }
+            { name: 'alcohol', type: 'number', label: 'Alcohol (%)', value: 8.8, step: 0.1 }
         ],
         'bitcoin_price': [
-            { name: 'Open', type: 'number', label: 'Precio Apertura ($)', value: 2763.24, step: 0.01 },
-            { name: 'High', type: 'number', label: 'Precio Máximo ($)', value: 2889.62, step: 0.01 },
-            { name: 'Low', type: 'number', label: 'Precio Mínimo ($)', value: 2720.61, step: 0.01 },
-            { name: 'Volume', type: 'text', label: 'Volumen', value: '860,575,000' },
-            { name: 'Market Cap', type: 'text', label: 'Market Cap', value: '45,535,800,000' }
+            { name: 'open', type: 'number', label: 'Precio Apertura ($)', value: 650.00, step: 0.01 },
+            { name: 'high', type: 'number', label: 'Precio Máximo ($)', value: 670.00, step: 0.01 },
+            { name: 'low', type: 'number', label: 'Precio Mínimo ($)', value: 630.00, step: 0.01 },
+            { name: 'volume', type: 'text', label: 'Volumen', value: '35,000,000' },
+            { name: 'market_cap', type: 'text', label: 'Market Cap', value: '10,000,000,000' },
+            { name: 'lag_1', type: 'number', label: 'Precio día anterior ($)', value: 640.00, step: 0.01 },
+            { name: 'lag_7', type: 'number', label: 'Precio 7 días atrás ($)', value: 620.00, step: 0.01 },
+            { name: 'rolling_mean_7', type: 'number', label: 'Media móvil 7 días ($)', value: 635.00, step: 0.01 }
         ],
         'body_fat': [
-            { name: 'Density', type: 'number', label: 'Densidad corporal', value: 1.0708, step: 0.0001 },
-            { name: 'Age', type: 'number', label: 'Edad', value: 23 },
-            { name: 'Weight', type: 'number', label: 'Peso (lbs)', value: 154.25, step: 0.01 },
-            { name: 'Height', type: 'number', label: 'Altura (inches)', value: 67.75, step: 0.01 },
-            { name: 'Neck', type: 'number', label: 'Cuello (cm)', value: 36.2, step: 0.1 },
-            { name: 'Chest', type: 'number', label: 'Pecho (cm)', value: 93.1, step: 0.1 },
-            { name: 'Abdomen', type: 'number', label: 'Abdomen (cm)', value: 85.2, step: 0.1 },
-            { name: 'Hip', type: 'number', label: 'Cadera (cm)', value: 94.5, step: 0.1 },
-            { name: 'Thigh', type: 'number', label: 'Muslo (cm)', value: 59.0, step: 0.1 },
-            { name: 'Knee', type: 'number', label: 'Rodilla (cm)', value: 37.3, step: 0.1 },
-            { name: 'Ankle', type: 'number', label: 'Tobillo (cm)', value: 21.9, step: 0.1 },
-            { name: 'Biceps', type: 'number', label: 'Bíceps (cm)', value: 32.0, step: 0.1 },
-            { name: 'Forearm', type: 'number', label: 'Antebrazo (cm)', value: 27.4, step: 0.1 },
-            { name: 'Wrist', type: 'number', label: 'Muñeca (cm)', value: 17.1, step: 0.1 }
+            { name: 'density', type: 'number', label: 'Densidad corporal', value: 1.0708, step: 0.0001 },
+            { name: 'age', type: 'number', label: 'Edad', value: 23 },
+            { name: 'weight', type: 'number', label: 'Peso (lbs)', value: 154.25, step: 0.01 },
+            { name: 'height', type: 'number', label: 'Altura (inches)', value: 67.75, step: 0.01 },
+            { name: 'neck', type: 'number', label: 'Cuello (cm)', value: 36.2, step: 0.1 },
+            { name: 'chest', type: 'number', label: 'Pecho (cm)', value: 93.1, step: 0.1 },
+            { name: 'abdomen', type: 'number', label: 'Abdomen (cm)', value: 85.2, step: 0.1 },
+            { name: 'hip', type: 'number', label: 'Cadera (cm)', value: 94.5, step: 0.1 },
+            { name: 'thigh', type: 'number', label: 'Muslo (cm)', value: 59.0, step: 0.1 },
+            { name: 'knee', type: 'number', label: 'Rodilla (cm)', value: 37.3, step: 0.1 },
+            { name: 'ankle', type: 'number', label: 'Tobillo (cm)', value: 21.9, step: 0.1 },
+            { name: 'biceps', type: 'number', label: 'Bíceps (cm)', value: 32.0, step: 0.1 },
+            { name: 'forearm', type: 'number', label: 'Antebrazo (cm)', value: 27.4, step: 0.1 },
+            { name: 'wrist', type: 'number', label: 'Muñeca (cm)', value: 17.1, step: 0.1 }
         ],
         'car_prices': [
+            { name: 'car_name', type: 'text', label: 'Nombre del auto', value: 'ritz' },
             { name: 'year', type: 'number', label: 'Año', value: 2015 },
-            { name: 'mileage', type: 'number', label: 'Kilometraje', value: 36000 },
-            { name: 'state', type: 'text', label: 'Estado', value: 'CA' },
-            { name: 'make', type: 'text', label: 'Marca', value: 'Toyota' },
-            { name: 'model', type: 'text', label: 'Modelo', value: 'Camry' }
+            { name: 'present_price', type: 'number', label: 'Precio actual (Indian Lakhs)', value: 5.59, step: 0.01 },
+            { name: 'kms_driven', type: 'number', label: 'Kilómetros recorridos', value: 27000 },
+            { name: 'fuel_type', type: 'select', label: 'Tipo de combustible', options: ['Petrol', 'Diesel', 'CNG'] },
+            { name: 'seller_type', type: 'select', label: 'Tipo de vendedor', options: ['Dealer', 'Individual'] },
+            { name: 'transmission', type: 'select', label: 'Transmisión', options: ['Manual', 'Automatic'] },
+            { name: 'owner', type: 'number', label: 'Número de dueños', value: 0 }
         ],
         'stroke_risk': [
             { name: 'gender', type: 'select', label: 'Género', options: ['Male', 'Female', 'Other'] },
             { name: 'age', type: 'number', label: 'Edad', value: 67 },
-            { name: 'hypertension', type: 'select', label: 'Hipertensión', options: ['0', '1'] },
-            { name: 'heart_disease', type: 'select', label: 'Enfermedad cardíaca', options: ['0', '1'] },
+            { name: 'hypertension', type: 'number', label: 'Hipertensión', value: 0 },
+            { name: 'heart_disease', type: 'number', label: 'Enfermedad cardíaca', value: 1 },
             { name: 'ever_married', type: 'select', label: 'Casado/a', options: ['Yes', 'No'] },
             { name: 'work_type', type: 'select', label: 'Tipo de trabajo', options: ['Private', 'Self-employed', 'Govt_job', 'children', 'Never_worked'] },
             { name: 'residence_type', type: 'select', label: 'Tipo de residencia', options: ['Urban', 'Rural'] },
@@ -352,7 +366,6 @@ function loadExampleForm(modelKey) {
         ],
         'cirrhosis_status': [
             { name: 'n_days', type: 'number', label: 'Días de observación', value: 400 },
-            { name: 'status', type: 'select', label: 'Estado', options: ['C', 'CL', 'D'] },
             { name: 'drug', type: 'select', label: 'Medicamento', options: ['D-penicillamine', 'Placebo'] },
             { name: 'age', type: 'number', label: 'Edad (días)', value: 21464 },
             { name: 'sex', type: 'select', label: 'Sexo', options: ['M', 'F'] },
@@ -372,14 +385,15 @@ function loadExampleForm(modelKey) {
             { name: 'stage', type: 'number', label: 'Etapa', value: 4.0 }
         ],
         'avocado_prices': [
+            { name: 'date', type: 'text', label: 'Fecha', value: '2015-12-27' },
             { name: 'total_volume', type: 'number', label: 'Volumen total', value: 64236.62, step: 0.01 },
-            { name: 'plu_4046', type: 'number', label: 'PLU 4046', value: 1036.74, step: 0.01 },
-            { name: 'plu_4225', type: 'number', label: 'PLU 4225', value: 54454.85, step: 0.01 },
-            { name: 'plu_4770', type: 'number', label: 'PLU 4770', value: 48.16, step: 0.01 },
+            { name: '4046', type: 'number', label: 'PLU 4046', value: 1036.74, step: 0.01 },
+            { name: '4225', type: 'number', label: 'PLU 4225', value: 54454.85, step: 0.01 },
+            { name: '4770', type: 'number', label: 'PLU 4770', value: 48.16, step: 0.01 },
             { name: 'total_bags', type: 'number', label: 'Bolsas totales', value: 8696.87, step: 0.01 },
             { name: 'small_bags', type: 'number', label: 'Bolsas pequeñas', value: 8603.62, step: 0.01 },
             { name: 'large_bags', type: 'number', label: 'Bolsas grandes', value: 93.25, step: 0.01 },
-            { name: 'x_large_bags', type: 'number', label: 'Bolsas extragrandes', value: 0.0, step: 0.01 },
+            { name: 'xlarge_bags', type: 'number', label: 'Bolsas extragrandes', value: 0.0, step: 0.01 },
             { name: 'type', type: 'select', label: 'Tipo', options: ['conventional', 'organic'] },
             { name: 'year', type: 'number', label: 'Año', value: 2015 },
             { name: 'region', type: 'text', label: 'Región', value: 'Albany' }
@@ -411,7 +425,7 @@ function loadExampleForm(modelKey) {
                         type="${field.type}" 
                         id="${field.name}" 
                         name="${field.name}" 
-                        value="${field.value || ''}"
+                        value="${field.value !== undefined && field.value !== null ? field.value : ''}"
                         step="${field.step || 'any'}"
                         required
                     >
@@ -433,7 +447,19 @@ async function makePrediction() {
     
     inputs.forEach(input => {
         const value = input.value;
-        formData[input.name] = isNaN(value) ? value : parseFloat(value);
+        
+        // Skip empty values
+        if (value === '' || value === null || value === undefined) {
+            return;
+        }
+        
+        // Try to parse as number if it's a number input
+        if (input.type === 'number') {
+            const numValue = parseFloat(value);
+            formData[input.name] = isNaN(numValue) ? value : numValue;
+        } else {
+            formData[input.name] = value;
+        }
     });
     
     console.log('📤 Sending prediction request:', {
@@ -483,6 +509,9 @@ function displayPredictionResult(result) {
         </div>
         
         <div class="result-value">
+            <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                ${getPredictionLabel(state.selectedModel?.key)}
+            </div>
             ${formatPredictionValue(result.prediction, result.task_type)}
         </div>
         
@@ -506,9 +535,48 @@ function displayPredictionResult(result) {
     resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+function getPredictionLabel(modelKey) {
+    const labels = {
+        'bitcoin_price': 'Precio de Cierre (USD)',
+        'avocado_prices': 'Precio Promedio (USD)',
+        'body_fat': 'Porcentaje de Grasa Corporal',
+        'car_prices': 'Precio del Vehículo (Indian Lakhs)',
+        'telco_churn': 'Abandonará el Servicio',
+        'wine_quality': 'Calidad del Vino',
+        'stroke_risk': 'Riesgo de Derrame',
+        'hepatitis_c': 'Categoría de Diagnóstico',
+        'cirrhosis_status': 'Estatus Clínico'
+    };
+    return labels[modelKey] || 'Predicción';
+}
+
 function formatPredictionValue(value, taskType) {
     if (taskType === 'regression') {
-        return `$${parseFloat(value).toFixed(2)}`;
+        const numValue = parseFloat(value);
+        const modelKey = state.selectedModel?.key;
+        
+        // Format based on what the model is predicting
+        switch(modelKey) {
+            case 'bitcoin_price':
+            case 'avocado_prices':
+                // Prices in USD - use dollar sign
+                return `$${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            
+            case 'car_prices':
+                // Prices in Indian Lakhs - show Lakhs and approximate USD
+                const lakhsFormatted = numValue.toFixed(2);
+                const inr = numValue * 100000; // Convert Lakhs to Rupees
+                const usdApprox = (inr / 83).toFixed(0); // Approximate conversion to USD
+                return `${lakhsFormatted} Lakhs (₹${inr.toLocaleString('en-IN')} / ~$${parseFloat(usdApprox).toLocaleString('en-US')})`;
+            
+            case 'body_fat':
+                // Percentage
+                return `${numValue.toFixed(2)}%`;
+            
+            default:
+                // Generic number with 2 decimals
+                return numValue.toFixed(2);
+        }
     }
     return value;
 }
@@ -551,19 +619,45 @@ async function checkVoiceService() {
 
 async function startRecording() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Request audio with specific constraints for better quality
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                sampleRate: 48000
+            } 
+        });
         
-        state.mediaRecorder = new MediaRecorder(stream);
+        // Try to create MediaRecorder with specific mime type
+        let options = { mimeType: 'audio/webm;codecs=opus' };
+        
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            console.warn('⚠️ audio/webm;codecs=opus no soportado, usando default');
+            options = {};
+        }
+        
+        state.mediaRecorder = new MediaRecorder(stream, options);
         state.audioChunks = [];
         
+        console.log('🎤 MediaRecorder configurado:');
+        console.log(`   - MIME Type: ${state.mediaRecorder.mimeType}`);
+        console.log(`   - State: ${state.mediaRecorder.state}`);
+        
         state.mediaRecorder.ondataavailable = (event) => {
-            state.audioChunks.push(event.data);
+            if (event.data && event.data.size > 0) {
+                console.log(`📊 Chunk recibido: ${event.data.size} bytes`);
+                state.audioChunks.push(event.data);
+            }
         };
         
         state.mediaRecorder.onstop = processAudio;
         
-        state.mediaRecorder.start();
+        // Start recording with timeslice to get data in chunks
+        state.mediaRecorder.start(100); // Request data every 100ms
         state.isRecording = true;
+        
+        console.log('✅ Grabación iniciada');
         
         // Update UI
         document.getElementById('recordBtn').style.display = 'none';
@@ -604,6 +698,18 @@ function stopRecording() {
 async function processAudio() {
     const audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
     
+    console.log('🎤 Audio capturado:');
+    console.log(`   - Tamaño: ${audioBlob.size} bytes`);
+    console.log(`   - Tipo: ${audioBlob.type}`);
+    console.log(`   - Chunks: ${state.audioChunks.length}`);
+    
+    if (audioBlob.size < 1000) {
+        console.warn('⚠️ Audio muy pequeño, puede que no se haya grabado nada');
+        showNotification('Audio muy corto. Intenta grabar por más tiempo.', 'warning');
+        resetVoiceUI();
+        return;
+    }
+    
     // Convert to base64
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
@@ -623,12 +729,21 @@ async function processAudio() {
                 })
             });
             
+            console.log('📥 Voice response status:', response.status);
             const result = await response.json();
+            console.log('📥 Voice response data:', result);
+            
+            if (!response.ok) {
+                console.error('❌ Voice command error:', result);
+                showNotification(`Error: ${result.detail?.message || result.detail || 'Error procesando voz'}`, 'error');
+                resetVoiceUI();
+                return;
+            }
             
             displayVoiceResult(result);
         } catch (error) {
-            console.error('Voice processing error:', error);
-            showNotification('Error al procesar el audio. Verifica que Google Speech-to-Text esté configurado.', 'error');
+            console.error('❌ Voice processing error:', error);
+            showNotification('Error al procesar el audio. En modo DEMO, debería funcionar sin Google Cloud.', 'error');
             resetVoiceUI();
         }
     };

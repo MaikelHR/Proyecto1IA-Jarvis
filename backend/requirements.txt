@@ -14,8 +14,13 @@ google-cloud-speech>=2.21.0
 pyaudio>=0.2.13
 python-multipart>=0.0.6  # Para uploads de archivos
 
-# Face Recognition (Azure Cognitive Services)
+# Face Recognition (Hybrid: Azure + Local Fallback)
+# Azure Face API (Primary)
 azure-cognitiveservices-vision-face>=0.6.0
+msrest>=0.7.0  # Dependencia de Azure SDK
+
+# DeepFace (Local Fallback - usado si Azure requiere aprobación)
+deepface>=0.0.79
 opencv-python>=4.10.0
 pillow>=10.0.0  # Para procesamiento de imágenes
-msrest>=0.7.0  # Dependencia de Azure SDK
+tf-keras>=2.16.0  # Backend para DeepFace

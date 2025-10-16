@@ -119,12 +119,23 @@ async def detect_emotion_upload(file: UploadFile = File(...)):
         # Read file content
         image_data = await file.read()
         
+        # Log image info
+        print(f"📷 Imagen recibida:")
+        print(f"   - Tamaño: {len(image_data)} bytes")
+        print(f"   - Tipo: {file.content_type}")
+        print(f"   - Nombre: {file.filename}")
+        
+        # Validate image data
+        if len(image_data) == 0:
+            raise ValueError("La imagen está vacía")
+        
         # Analyze emotions
         result = face_recognition_service.analyze_emotions(image_data)
         
         return result
     
     except Exception as e:
+        print(f"❌ Error en emotion/upload: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error analyzing emotions: {str(e)}"

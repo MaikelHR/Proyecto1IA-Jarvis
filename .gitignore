@@ -11,6 +11,8 @@ credentials/
 !tsconfig.json
 .env
 .env.local
+config/.env.*
+!config/.env.*.example
 
 # Audio files
 temp_audio/

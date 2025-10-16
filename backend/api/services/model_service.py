@@ -85,6 +85,88 @@ class ModelService:
         """Get information about a specific dataset."""
         return self._dataset_info.get(dataset_key)
     
+    def _to_snake_case(self, text: str) -> str:
+        """
+        Convert PascalCase/camelCase to snake_case.
+        Examples:
+            PaperlessBilling -> paperless_billing
+            MonthlyCharges -> monthly_charges
+            SeniorCitizen -> senior_citizen
+        """
+        import re
+        # Insert underscore before uppercase letters that follow lowercase letters
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', text)
+        # Insert underscore before uppercase letters that follow lowercase or numbers
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    
+    def _clean_numeric_value(self, value: Any) -> Any:
+        """
+        Clean numeric values that might have commas or other formatting.
+        Examples:
+            "860,575,000" -> 860575000
+            "45,535,800,000" -> 45535800000
+        """
+        if isinstance(value, str):
+            # Remove commas and try to convert to float
+            cleaned = value.replace(',', '')
+            try:
+                return float(cleaned)
+            except ValueError:
+                # If conversion fails, return original value (might be categorical)
+                return value
+        return value
+    
+    def _normalize_features(self, dataset_key: str, features: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize feature names and add model-specific features.
+        
+        Args:
+            dataset_key: Key identifying the model
+            features: Original feature dictionary
+            
+        Returns:
+            Normalized feature dictionary with all required features
+        """
+        normalized = {}
+        
+        # Step 1: Normalize all incoming feature names and values
+        for key, value in features.items():
+            # Clean numeric values (remove commas)
+            cleaned_value = self._clean_numeric_value(value)
+            
+            # Handle special cases first
+            if key == "pH":
+                normalized["p_h"] = cleaned_value
+            elif key.startswith("4"):  # Avocado PLU codes (4046, 4225, 4770)
+                normalized[f"col_{key}"] = cleaned_value
+            else:
+                # Standard normalization: 
+                # 1. If key has spaces, just lowercase and replace spaces
+                # 2. If key is PascalCase (no spaces), use to_snake_case
+                if ' ' in key:
+                    # Simple case: "Market Cap" -> "market_cap"
+                    normalized_key = key.lower().replace(' ', '_')
+                else:
+                    # PascalCase: "PaperlessBilling" -> "paperless_billing"
+                    normalized_key = self._to_snake_case(key)
+                normalized[normalized_key] = cleaned_value
+        
+        # Step 2: Add model-specific engineered features
+        # Note: For Bitcoin, lag_1, lag_7, and rolling_mean_7 should be provided by the user
+        # as they represent historical price data that affects the prediction
+        
+        if dataset_key == "car_prices":
+            # Car prices needs car_name
+            if 'car_name' not in normalized:
+                normalized['car_name'] = 'unknown'
+        
+        elif dataset_key == "telco_churn":
+            # Telco needs customer_id (can be dummy for prediction)
+            if 'customer_id' not in normalized:
+                normalized['customer_id'] = 'PRED-0000'
+        
+        return normalized
+    
     def predict(self, dataset_key: str, features: Dict[str, Any]) -> Tuple[Any, Optional[float]]:
         """
         Make a prediction using the specified model.
@@ -102,8 +184,14 @@ class ModelService:
         model = self._models[dataset_key]
         dataset_info = self._dataset_info[dataset_key]
         
+        # Normalize features using model-specific logic
+        normalized_features = self._normalize_features(dataset_key, features)
+        
+        print(f"📊 Original features: {list(features.keys())}")
+        print(f"📊 Normalized features: {list(normalized_features.keys())}")
+        
         # Convert features dict to DataFrame
-        df = pd.DataFrame([features])
+        df = pd.DataFrame([normalized_features])
         
         # Make prediction
         if isinstance(model, Pipeline):

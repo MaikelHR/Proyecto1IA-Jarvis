@@ -9,7 +9,7 @@ from typing import Dict, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
@@ -199,7 +199,8 @@ def train_dataset(dataset_info: DatasetInfo) -> ModelResult:
     if dataset_info.task == TaskType.TIME_SERIES:
         X, y = _prepare_time_series_features(df, dataset_info)
         preprocessor = _regression_pipeline(X)
-        model = GradientBoostingRegressor(random_state=42)
+        # Use RandomForestRegressor instead of GradientBoosting for better stability
+        model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
         split_index = int(len(X) * 0.8)
         X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
         y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]

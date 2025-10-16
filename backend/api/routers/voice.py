@@ -36,28 +36,37 @@ async def process_voice_command(request: VoiceCommandRequest) -> VoiceCommandRes
     Raises:
         HTTPException: If speech recognition fails or API not configured
     """
+    print(f"\n🎤 Voice command received")
+    print(f"📊 Audio size: {len(request.audio_base64)} bytes (base64)")
+    print(f"🌍 Language: {request.language_code}")
+    
     # Check if service is available
-    if not speech_to_text_service.is_available():
-        # MODO DEMO: Simular transcripción cuando no hay API configurada
-        demo_transcript = "Jarvis, predice el precio de Bitcoin"
-        dataset_key = voice_service.parse_command(demo_transcript)
-        
-        return VoiceCommandResponse(
-            transcript=f"[DEMO MODE] {demo_transcript}",
-            command_recognized=dataset_key is not None,
-            dataset_key=dataset_key,
-            confidence=0.85
+    service_available = speech_to_text_service.is_available()
+    print(f"🔌 Service available: {service_available}")
+    
+    if not service_available:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "ServiceUnavailable",
+                "message": "Google Cloud Speech-to-Text API no configurado. Configure GOOGLE_APPLICATION_CREDENTIALS.",
+                "setup_info": "Ver documentación en /docs para configurar Google Cloud"
+            }
         )
     
     try:
+        print("🔄 Iniciando transcripción con Google Cloud...")
         # Transcribe audio
         transcript, confidence = speech_to_text_service.transcribe_base64_audio(
             audio_base64=request.audio_base64,
             language_code=request.language_code
         )
         
+        print(f"✅ Transcripción exitosa: '{transcript}' (confianza: {confidence})")
+        
         # Parse command
         dataset_key = voice_service.parse_command(transcript)
+        print(f"✅ Dataset key reconocido: {dataset_key}")
         
         return VoiceCommandResponse(
             transcript=transcript,
@@ -67,14 +76,29 @@ async def process_voice_command(request: VoiceCommandRequest) -> VoiceCommandRes
         )
     
     except GoogleAPIError as e:
+        print(f"❌ GoogleAPIError: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail={
                 "error": "GoogleAPIError",
-                "message": f"Speech recognition failed: {str(e)}"
+                "message": f"Error de reconocimiento de voz: {str(e)}"
+            }
+        )
+    except ValueError as e:
+        print(f"❌ ValueError: {str(e)}")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "ValueError",
+                "message": f"Error de validación: {str(e)}"
             }
         )
     except Exception as e:
+        print(f"❌ Exception genérica: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=400,
             detail={
